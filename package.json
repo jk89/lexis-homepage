@@ -26,22 +26,22 @@
     "vscode:install": "cd ../yaw/yaw/packages/yaw-vscode && npm run build && ln -sfn \"$(pwd)\" \"$HOME/.vscode/extensions/yaw-rx.yaw-vscode\" && code --install-extension PolyMeilex.wgsl"
   },
   "dependencies": {
+    "@yaw-rx/common": "^0.1.2",
+    "@yaw-rx/core": "^0.2.0",
+    "@yaw-rx/transformer": "^0.1.2",
     "motion": "^12.0.0",
-    "rxjs": "8.0.0-alpha.14",
-    "@yaw-rx/common": "file:../yaw/yaw/packages/yaw-common",
-    "@yaw-rx/core": "file:../yaw/yaw/packages/yaw",
-    "@yaw-rx/transformer": "file:../yaw/yaw/packages/yaw-transformer"
+    "rxjs": "8.0.0-alpha.14"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@yaw-rx/ssg": "^0.1.2",
+    "@yaw-rx/ts-plugin": "^0.1.2",
+    "@yaw-rx/vite": "^0.1.3",
+    "eslint": "^9.39.0",
+    "prettier": "^3.8.0",
     "ts-patch": "^3.3.0",
     "typescript": "^6.0.3",
-    "vite": "^5.0.0",
-    "@yaw-rx/vite": "file:../yaw/yaw/packages/yaw-vite",
-    "@yaw-rx/ts-plugin": "file:../yaw/yaw/packages/yaw-ts-plugin",
-    "@eslint/js": "^9.39.0",
-    "eslint": "^9.39.0",
     "typescript-eslint": "^8.59.0",
-    "prettier": "^3.8.0",
-    "@yaw-rx/ssg": "file:../yaw/yaw/packages/yaw-ssg"
+    "vite": "^5.0.0"
   }
 }

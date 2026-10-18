@@ -1,19 +1,5 @@
-# The build context is the parent of yaw/ and lexis-homepage/; send only those two.
-*
-!yaw/yaw/package.json
-!yaw/yaw/package-lock.json
-!yaw/yaw/tsconfig.base.json
-!yaw/yaw/tsconfig.json
-!yaw/yaw/packages/yaw-common
-!yaw/yaw/packages/yaw
-!yaw/yaw/packages/yaw-transformer
-!yaw/yaw/packages/yaw-ts-plugin
-!yaw/yaw/packages/yaw-vite
-!yaw/yaw/packages/yaw-ssg
-!lexis-homepage
-
-**/node_modules
-**/dist
-**/*.tsbuildinfo
-lexis-homepage/public
-lexis-homepage/ssl
+node_modules
+dist
+public
+ssl
+*.tsbuildinfo

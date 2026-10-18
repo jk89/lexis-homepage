@@ -216,21 +216,27 @@ DBUILD_TOOL=docker ./tools/toolchain/dbuild ninja build/dev/scylla`;
                                    on tablets. Full scans return partitions in key order.</p>
                             </div>
                             <div class="card" motion-reveal="0.06">
+                                <h4>Partition order</h4>
+                                <p><code class="inline">PARTITION ORDER BY</code> declares each partition key
+                                   column ASC or DESC, as <code class="inline">CLUSTERING ORDER BY</code> does for
+                                   clustering columns.</p>
+                            </div>
+                            <div class="card" motion-reveal="0.12">
                                 <h4>Partial key queries</h4>
                                 <p>A prefix of the partition key, a range on its next column, or an
                                    <code class="inline">IN</code> followed by a range are served as range reads.</p>
                             </div>
-                            <div class="card" motion-reveal="0.12">
+                            <div class="card" motion-reveal="0.18">
                                 <h4>Blob tokens</h4>
                                 <p><code class="inline">token()</code> returns the encoded key as a blob. cqlsh
                                    and the tools show tokens as hex.</p>
                             </div>
-                            <div class="card" motion-reveal="0.18">
-                                <h4>Typed ordering</h4>
-                                <p>Text, integers, varints, decimals and timestamps sort in CQL order,
-                                   negatives included.</p>
-                            </div>
                             <div class="card" motion-reveal="0.24">
+                                <h4>Typed key ordering</h4>
+                                <p>Every scalar key type sorts and ranges as CQL compares it; text and blobs
+                                   sort lexicographically.</p>
+                            </div>
+                            <div class="card" motion-reveal="0.3">
                                 <h4>Token-aware clients</h4>
                                 <p>Python, Rust, cqlsh, nodetool and sstable tools all understand Lexis tokens.</p>
                             </div>

@@ -1,4 +1,4 @@
-import { BehaviorSubject, combineLatest, map, timer, type Observable } from 'rxjs';
+import { combineLatest, map, timer, type Observable } from 'rxjs';
 import { Component, RxElement, state } from '@yaw-rx/core';
 import { RxFor } from '@yaw-rx/core/directives/rx-for';
 import { readInert } from '@yaw-rx/common/escape';
@@ -36,7 +36,7 @@ export class CodeBlock extends RxElement {
     @state syntax = '';
     @state filename = '';
     @state copyLabel = 'copy';
-    readonly tokens$ = new BehaviorSubject<readonly Token[]>([]);
+    @state tokens: readonly Token[] = [];
     private sourceEl!: HTMLElement;
     private source = '';
 
@@ -46,7 +46,7 @@ export class CodeBlock extends RxElement {
 
     override onRender(): void {
         this.source = dedent(readInert(this.sourceEl));
-        this.tokens$.next((HIGHLIGHTERS[this.syntax] ?? plainTokens)(this.source));
+        this.tokens = (HIGHLIGHTERS[this.syntax] ?? plainTokens)(this.source);
     }
 
     copy(): void {

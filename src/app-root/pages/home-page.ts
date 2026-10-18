@@ -78,13 +78,13 @@ import styles from './home-page.css';
                with no sacrifice in distribution or performance.</p>
             <div class="grid">
                 <div class="feat" motion-reveal="0">
-                    <h4>Prefix scans</h4>
+                    <h4>Partial partition key queries</h4>
                     <p>Name the start of a partition key, get every partition under it as one
                        contiguous range, in key order.</p>
                     <code>WHERE user_id = 'u42'</code>
                 </div>
                 <div class="feat" motion-reveal="0.08">
-                    <h4>Ranges on any component</h4>
+                    <h4>Ranges on contiguous partition key columns, beginning at the first column</h4>
                     <p>Range over users without naming one, or page through one user's orders,
                        with no full-cluster scatter.</p>
                     <code>WHERE user_id &gt; 'u1'</code>
@@ -112,16 +112,16 @@ import styles from './home-page.css';
                     <code>token() → blob</code>
                 </div>
                 <div class="feat" motion-reveal="0.48">
-                    <h4>Windows, both ways</h4>
+                    <h4>One and/or two-sided ranges</h4>
                     <p>Bound a range at either end, or both: everything below a key, or a window
                        of one user's orders.</p>
                     <code>order_id &gt;= 'o100' AND order_id &lt; 'o200'</code>
                 </div>
                 <div class="feat" motion-reveal="0.64">
-                    <h4>Typed order</h4>
-                    <p>Integers (negatives included), varint, decimal and timestamp keys sort and
-                       range in their natural order.</p>
-                    <code>user_id bigint</code>
+                    <h4>Typed key order, ASC or DESC</h4>
+                    <p>Every scalar key type sorts and ranges as CQL compares it, and each key column
+                       can be ASC or DESC.</p>
+                    <code>PARTITION ORDER BY (order_id DESC)</code>
                 </div>
             </div>
             <button class="more" onclick="toExamples">See every query, with results →</button>

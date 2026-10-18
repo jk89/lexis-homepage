@@ -1,8 +1,8 @@
 services:
   app:
     build:
-      context: ..
-      dockerfile: lexis-homepage/Dockerfile
+      context: .
+      dockerfile: Dockerfile
       args:
         NGINX_CONF: nginx.dev.conf
     ports:

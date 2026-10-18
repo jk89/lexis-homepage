@@ -12,12 +12,17 @@ import '../components/cql-session.component.js';
 import '../components/code-block.component.js';
 import '../components/site-footer.component.js';
 
+const ORDER_SCHEMA = `CREATE TABLE user_orders (user_id text, order_id text, item text,
+                          PRIMARY KEY ((user_id, order_id)))
+    WITH PARTITION ORDER BY (user_id ASC, order_id DESC);`;
+
 const SCHEMA = `CREATE KEYSPACE lexis WITH replication =
     {'class': 'NetworkTopologyStrategy', 'replication_factor': 1};
 USE lexis;
 
 CREATE TABLE user_orders (user_id text, order_id text, item text,
-                          PRIMARY KEY ((user_id, order_id)));`;
+                          PRIMARY KEY ((user_id, order_id)))
+    WITH PARTITION ORDER BY (user_id ASC, order_id DESC);`;
 
 const INSERTS = `INSERT INTO user_orders (user_id, order_id, item) VALUES ('u7',  'o5',   'pen');
 INSERT INTO user_orders (user_id, order_id, item) VALUES ('u42', 'o250', 'mug');
@@ -30,75 +35,88 @@ const ALL = `SELECT * FROM user_orders;
 ---
  user_id | order_id | item
 ---------+----------+-------
- u1      | o1       | book
  u1      | o2       | lamp
- u42     | o100     | desk
- u42     | o101     | chair
+ u1      | o1       | book
  u42     | o250     | mug
+ u42     | o101     | chair
+ u42     | o100     | desk
  u7      | o5       | pen`;
 
 const ONE_USER = `SELECT * FROM user_orders WHERE user_id = 'u42';
 ---
  user_id | order_id | item
 ---------+----------+-------
- u42     | o100     | desk
+ u42     | o250     | mug
  u42     | o101     | chair
- u42     | o250     | mug`;
+ u42     | o100     | desk`;
 
-const PAGE = `SELECT * FROM user_orders WHERE user_id = 'u42'
-    AND order_id > 'o100' LIMIT 2;
+const LATEST = `SELECT * FROM user_orders WHERE user_id = 'u42' LIMIT 2;
 ---
  user_id | order_id | item
 ---------+----------+-------
- u42     | o101     | chair
- u42     | o250     | mug`;
+ u42     | o250     | mug
+ u42     | o101     | chair`;
+
+const PAGE = `SELECT * FROM user_orders WHERE user_id = 'u42'
+    AND order_id < 'o101' LIMIT 2;
+---
+ user_id | order_id | item
+---------+----------+-------
+ u42     | o100     | desk`;
 
 const WINDOW = `SELECT * FROM user_orders WHERE user_id = 'u42'
     AND order_id >= 'o100' AND order_id < 'o200';
 ---
  user_id | order_id | item
 ---------+----------+-------
- u42     | o100     | desk
- u42     | o101     | chair`;
+ u42     | o101     | chair
+ u42     | o100     | desk`;
+
+const UP_TO = `SELECT * FROM user_orders WHERE user_id = 'u42' AND order_id <= 'o101';
+---
+ user_id | order_id | item
+---------+----------+-------
+ u42     | o101     | chair
+ u42     | o100     | desk`;
 
 const USER_RANGE = `SELECT * FROM user_orders WHERE user_id >= 'u1' AND user_id < 'u5';
 ---
  user_id | order_id | item
 ---------+----------+-------
- u1      | o1       | book
  u1      | o2       | lamp
- u42     | o100     | desk
+ u1      | o1       | book
+ u42     | o250     | mug
  u42     | o101     | chair
- u42     | o250     | mug`;
+ u42     | o100     | desk`;
 
 const AFTER = `SELECT * FROM user_orders WHERE user_id > 'u1';
 ---
  user_id | order_id | item
 ---------+----------+-------
- u42     | o100     | desk
- u42     | o101     | chair
  u42     | o250     | mug
+ u42     | o101     | chair
+ u42     | o100     | desk
  u7      | o5       | pen`;
 
 const BEFORE = `SELECT * FROM user_orders WHERE user_id < 'u7';
 ---
  user_id | order_id | item
 ---------+----------+-------
- u1      | o1       | book
  u1      | o2       | lamp
- u42     | o100     | desk
+ u1      | o1       | book
+ u42     | o250     | mug
  u42     | o101     | chair
- u42     | o250     | mug`;
+ u42     | o100     | desk`;
 
 const IN = `SELECT * FROM user_orders WHERE user_id IN ('u1', 'u42');
 ---
  user_id | order_id | item
 ---------+----------+-------
- u1      | o1       | book
  u1      | o2       | lamp
- u42     | o100     | desk
+ u1      | o1       | book
+ u42     | o250     | mug
  u42     | o101     | chair
- u42     | o250     | mug`;
+ u42     | o100     | desk`;
 
 const IN_RANGE = `SELECT * FROM user_orders WHERE user_id IN ('u1', 'u42')
     AND order_id > 'o1';
@@ -106,17 +124,26 @@ const IN_RANGE = `SELECT * FROM user_orders WHERE user_id IN ('u1', 'u42')
  user_id | order_id | item
 ---------+----------+-------
  u1      | o2       | lamp
- u42     | o100     | desk
+ u42     | o250     | mug
  u42     | o101     | chair
- u42     | o250     | mug`;
+ u42     | o100     | desk`;
+
+const IN_WINDOW = `SELECT * FROM user_orders WHERE user_id IN ('u1', 'u42')
+    AND order_id >= 'o100' AND order_id < 'o200';
+---
+ user_id | order_id | item
+---------+----------+-------
+ u1      | o2       | lamp
+ u42     | o101     | chair
+ u42     | o100     | desk`;
 
 const ORDERS_IN = `SELECT * FROM user_orders WHERE user_id = 'u42'
     AND order_id IN ('o100', 'o250');
 ---
  user_id | order_id | item
 ---------+----------+-------
- u42     | o100     | desk
- u42     | o250     | mug`;
+ u42     | o250     | mug
+ u42     | o100     | desk`;
 
 const CROSS = `SELECT * FROM user_orders WHERE user_id IN ('u1', 'u42')
     AND order_id IN ('o1', 'o100');
@@ -130,26 +157,87 @@ const LIMIT = `SELECT * FROM user_orders LIMIT 2;
 ---
  user_id | order_id | item
 ---------+----------+-------
- u1      | o1       | book
- u1      | o2       | lamp`;
+ u1      | o2       | lamp
+ u1      | o1       | book`;
+
+const SCORES_SCHEMA = `CREATE TABLE scores (score double, player text,
+                     PRIMARY KEY ((score, player)))
+    WITH PARTITION ORDER BY (score DESC);`;
+
+const SCORES_INSERTS = `INSERT INTO scores (score, player) VALUES (42.25, 'dee');
+INSERT INTO scores (score, player) VALUES (88,    'cy');
+INSERT INTO scores (score, player) VALUES (-3.5,  'eve');
+INSERT INTO scores (score, player) VALUES (97.5,  'ana');
+INSERT INTO scores (score, player) VALUES (88,    'bo');`;
+
+const SCORES_ALL = `SELECT * FROM scores;
+---
+ score | player
+-------+--------
+ 97.5  | ana
+ 88    | bo
+ 88    | cy
+ 42.25 | dee
+ -3.5  | eve`;
+
+const SCORES_TOP = `SELECT * FROM scores LIMIT 3;
+---
+ score | player
+-------+--------
+ 97.5  | ana
+ 88    | bo
+ 88    | cy`;
+
+const SCORES_WINDOW = `SELECT * FROM scores WHERE score > 0 AND score < 90;
+---
+ score | player
+-------+--------
+ 88    | bo
+ 88    | cy
+ 42.25 | dee`;
+
+const SCORES_BELOW = `SELECT * FROM scores WHERE score < 50;
+---
+ score | player
+-------+--------
+ 42.25 | dee
+ -3.5  | eve`;
+
+const SCORES_TIE = `SELECT * FROM scores WHERE score = 88 AND player > 'bo';
+---
+ score | player
+-------+--------
+ 88    | cy`;
 
 const TOKEN = `SELECT user_id, order_id, token(user_id, order_id) FROM user_orders
     WHERE user_id = 'u42' AND order_id = 'o100';
 ---
  user_id | order_id | system.token(user_id, order_id)
 ---------+----------+---------------------------------
- u42     | o100     | 0x75343200006f3130300000`;
+ u42     | o100     | 0x753432000090cecfcfffff`;
 
-const INTS_SCHEMA = `CREATE TABLE readings (sensor int PRIMARY KEY, v int);
--- insert sensors -70000, -1, 0, 1, 70000 in any order`;
-
-const INTS = `SELECT sensor FROM readings WHERE sensor > -1;
+const TOKEN_PAGE = `SELECT * FROM user_orders
+    WHERE token(user_id, order_id) > 0x7531000090ceffff LIMIT 2;
 ---
- sensor
---------
- 0
- 1
- 70000`;
+ user_id | order_id | item
+---------+----------+-------
+ u42     | o250     | mug
+ u42     | o101     | chair`;
+
+const BIND = `q = session.prepare("SELECT * FROM user_orders WHERE user_id = ?"
+                    " AND order_id < ? LIMIT 2")
+session.execute(q, ('u42', 'o101'))`;
+
+const NO_USER =`SELECT * FROM user_orders WHERE order_id = 'o100';`;
+
+const AFTER_RANGE = `SELECT * FROM user_orders WHERE user_id > 'u1' AND order_id = 'o5';`;
+
+const AFTER_RANGE_FILTERED = `SELECT * FROM user_orders WHERE user_id > 'u1' AND order_id = 'o5'
+    ALLOW FILTERING;
+---
+ user_id | order_id | item
+---------+----------+-------
+ u7      | o5       | pen`;
 
 @Component({
     selector: 'examples-page',
@@ -166,7 +254,8 @@ const INTS = `SELECT sensor FROM readings WHERE sensor > -1;
                        orders, a tenant's documents, a device's readings. Key them by the parent's id
                        and then their own, with both as the partition key, and every record is its own
                        partition. For example, <code class="inline">user_orders</code> keyed by
-                       <code class="inline">(user_id, order_id)</code>.</p>
+                       <code class="inline">(user_id, order_id)</code>, with each user's newest orders
+                       first.</p>
                     <p class="lede">In ScyllaDB the token is a hash of the whole key, so only a complete
                        key can be looked up efficiently. Listing a user's orders, paging through them,
                        or ranging over users all name just the start of the key, and ScyllaDB rejects them:</p>
@@ -184,14 +273,36 @@ const INTS = `SELECT sensor FROM readings WHERE sensor > -1;
                        <code class="inline">ALLOW FILTERING</code>.</p>
                 </header>
 
+                <section class="cat" toc-section="order">
+                    <h2 toc-anchor="order">Partition key order</h2>
+                    <p class="note">Partitions are stored, distributed and returned in key order, and
+                       Lexis adds <code class="inline">PARTITION ORDER BY</code> to choose that order.</p>
+
+                    <section class="ex" toc-section="order/direction">
+                        <h3 toc-anchor="order/direction" toc-label="ASC or DESC">ASC or DESC per column</h3>
+                        <p class="note">Each partition key column can be declared ASC or DESC, as
+                           <code class="inline">CLUSTERING ORDER BY</code> does for clustering columns.
+                           The direction is fixed when the table is created, ASC is the default, and
+                           directions can be mixed.</p>
+                        <cql-session motion-reveal>${escape`${ORDER_SCHEMA}`}</cql-session>
+                    </section>
+
+                    <section class="ex" toc-section="order/types">
+                        <h3 toc-anchor="order/types">Types</h3>
+                        <p class="note">The token encodes each column in its direction: an ASC column as
+                           order-preserving bytes, a DESC column as their complement, so its largest value
+                           comes first. Every scalar key type sorts as CQL compares it, in either direction and
+                           with every range operator; text and blobs sort lexicographically.</p>
+                    </section>
+                </section>
+
                 <section class="cat" toc-section="setup">
                     <h2 toc-anchor="setup">Setup</h2>
                     <p class="note">One table, keyed by the user and then the order.</p>
 
                     <section class="ex" toc-section="setup/schema">
                         <h3 toc-anchor="setup/schema">Schema</h3>
-                        <p class="note">Plain CQL. Every table in Lexis is ordered, so there is no
-                           partitioner option to set. Tablets are on by default for new keyspaces.</p>
+                        <p class="note">Plain CQL. Tablets are on by default for new keyspaces.</p>
                         <cql-session motion-reveal>${escape`${SCHEMA}`}</cql-session>
                         <cql-session motion-reveal>${escape`${INSERTS}`}</cql-session>
                     </section>
@@ -208,31 +319,43 @@ const INTS = `SELECT sensor FROM readings WHERE sensor > -1;
                 </section>
 
                 <section class="cat" toc-section="prefixes">
-                    <h2 toc-anchor="prefixes">Prefix queries</h2>
-                    <p class="note">Name the start of a key. Matches share a token prefix, so
+                    <h2 toc-anchor="prefixes">Partial partition key queries</h2>
+                    <p class="note">Name the start of a partition key. Matches share a token prefix, so
                        they are one contiguous range.</p>
 
                     <section class="ex" toc-section="prefixes/one-user">
                         <h3 toc-anchor="prefixes/one-user" toc-label="One user">All of one user's orders</h3>
                         <cql-session pk="2" badge="range read" motion-reveal>${escape`${ONE_USER}`}</cql-session>
                     </section>
+
+                    <section class="ex" toc-section="prefixes/latest">
+                        <h3 toc-anchor="prefixes/latest" toc-label="Latest">A user's latest orders</h3>
+                        <cql-session pk="2" badge="range read" motion-reveal>${escape`${LATEST}`}</cql-session>
+                    </section>
                 </section>
 
                 <section class="cat" toc-section="ranges">
                     <h2 toc-anchor="ranges">Range queries</h2>
-                    <p class="note">A range on any component, after an equality prefix or on the
-                       leading component alone, is a token range too.</p>
+                    <p class="note">A range on contiguous partition key columns, beginning at the
+                       first column, is a token range too.</p>
 
                     <section class="ex" toc-section="ranges/paging">
                         <h3 toc-anchor="ranges/paging" toc-label="Paging">A page of a user's orders</h3>
-                        <p class="note">Resume after the last order you saw.</p>
+                        <p class="note">Resume after the last order you saw*.</p>
                         <cql-session pk="2" badge="range read" motion-reveal>${escape`${PAGE}`}</cql-session>
+                        <p class="note footnote">* <code class="inline">order_id</code> is DESC, so the next
+                           page is the smaller ids and resumes with <code class="inline">&lt;</code>.</p>
                     </section>
 
                     <section class="ex" toc-section="ranges/window">
                         <h3 toc-anchor="ranges/window" toc-label="Window">A window of a user's orders</h3>
                         <p class="note">Both ends bounded, on the component after the prefix.</p>
                         <cql-session pk="2" badge="range read" motion-reveal>${escape`${WINDOW}`}</cql-session>
+                    </section>
+
+                    <section class="ex" toc-section="ranges/up-to">
+                        <h3 toc-anchor="ranges/up-to" toc-label="Up to">A user's orders up to a given one</h3>
+                        <cql-session pk="2" badge="range read" motion-reveal>${escape`${UP_TO}`}</cql-session>
                     </section>
 
                     <section class="ex" toc-section="ranges/users">
@@ -281,6 +404,13 @@ const INTS = `SELECT sensor FROM readings WHERE sensor > -1;
                            <code class="inline">'o100' &gt; 'o1'</code> lexicographically.</p>
                     </section>
 
+                    <section class="ex" toc-section="several/in-then-window">
+                        <h3 toc-anchor="several/in-then-window" toc-label="IN, then a window">Several users at once, within a window of orders</h3>
+                        <p class="note">Each user's range can be bounded at both ends*.</p>
+                        <cql-session pk="2" badge="2 ranges" motion-reveal>${escape`${IN_WINDOW}`}</cql-session>
+                        <p class="note footnote">* <code class="inline">'o2'</code> falls inside <code class="inline">['o100', 'o200')</code> due to lexicographic ordering.</p>
+                    </section>
+
                     <section class="ex" toc-section="several/orders">
                         <h3 toc-anchor="several/orders" toc-label="Specific orders">Specific orders of one user</h3>
                         <p class="note"><code class="inline">IN</code> on the second component: one exact key per value.</p>
@@ -296,8 +426,8 @@ const INTS = `SELECT sensor FROM readings WHERE sensor > -1;
                 </section>
 
                 <section class="cat" toc-section="ordering">
-                    <h2 toc-anchor="ordering">Ordering</h2>
-                    <p class="note">Key order is the storage order, for every key type that has one.</p>
+                    <h2 toc-anchor="ordering">Key ordering</h2>
+                    <p class="note">Partition key order is the storage order, just as clustering key order already was.</p>
 
                     <section class="ex" toc-section="ordering/first-rows">
                         <h3 toc-anchor="ordering/first-rows" toc-label="First rows">The first rows of the whole table, in key order</h3>
@@ -306,14 +436,16 @@ const INTS = `SELECT sensor FROM readings WHERE sensor > -1;
                         <cql-session pk="2" badge="key order" motion-reveal>${escape`${LIMIT}`}</cql-session>
                     </section>
 
-                    <section class="ex" toc-section="ordering/numbers">
-                        <h3 toc-anchor="ordering/numbers">Numeric keys</h3>
-                        <p class="note"><code class="inline">int</code>,
-                           <code class="inline">bigint</code>, <code class="inline">varint</code>,
-                           <code class="inline">decimal</code> and <code class="inline">timestamp</code>
-                           keys sort in CQL order, negatives included, and ranges on them are token ranges.</p>
-                        <code-block syntax="cql" filename="schema" motion-reveal>${escape`${INTS_SCHEMA}`}</code-block>
-                        <cql-session pk="1" badge="range read" motion-reveal>${escape`${INTS}`}</cql-session>
+                    <section class="ex" toc-section="ordering/highest">
+                        <h3 toc-anchor="ordering/highest" toc-label="Highest first">Highest first, and numbers in numeric order</h3>
+                        <p class="note">DESC on the leading column, with a <code class="inline">double</code> key.</p>
+                        <cql-session motion-reveal>${escape`${SCORES_SCHEMA}`}</cql-session>
+                        <cql-session motion-reveal>${escape`${SCORES_INSERTS}`}</cql-session>
+                        <cql-session pk="2" badge="key order" motion-reveal>${escape`${SCORES_ALL}`}</cql-session>
+                        <cql-session pk="2" badge="key order" motion-reveal>${escape`${SCORES_TOP}`}</cql-session>
+                        <cql-session pk="2" badge="range read" motion-reveal>${escape`${SCORES_WINDOW}`}</cql-session>
+                        <cql-session pk="2" badge="range read" motion-reveal>${escape`${SCORES_BELOW}`}</cql-session>
+                        <cql-session pk="2" badge="range read" motion-reveal>${escape`${SCORES_TIE}`}</cql-session>
                     </section>
                 </section>
 
@@ -324,12 +456,53 @@ const INTS = `SELECT sensor FROM readings WHERE sensor > -1;
                     <section class="ex" toc-section="tokens/blob">
                         <h3 toc-anchor="tokens/blob">token() is a blob</h3>
                         <p class="note"><code class="inline">token()</code> returns the encoded key:
-                           each component's bytes, then <code class="inline">00 00</code>. Here that is
-                           <span class="c0">u42</span>, then <span class="c1">o100</span>.</p>
+                           each component's bytes, then <code class="inline">00 00</code>. A DESC
+                           component is the complement, ending in <code class="inline">ff ff</code>. Here
+                           that is <span class="c0">u42</span>, then <span class="c1">o100</span>.</p>
                         <cql-session pk="2" motion-reveal>${escape`${TOKEN}`}</cql-session>
                         <div class="decoded" motion-reveal>
-                            <span class="c0">753432</span><span class="t">0000</span><span class="c1">6f313030</span><span class="t">0000</span>
+                            <span class="c0">753432</span><span class="t">0000</span><span class="c1">90cecfcf</span><span class="t">ffff</span>
                         </div>
+                    </section>
+
+                    <section class="ex" toc-section="tokens/page">
+                        <h3 toc-anchor="tokens/page" toc-label="Whole-table paging">The next page of the whole table</h3>
+                        <p class="note">Resume after the last key seen.</p>
+                        <cql-session pk="2" badge="range read" motion-reveal>${escape`${TOKEN_PAGE}`}</cql-session>
+                    </section>
+                </section>
+
+                <section class="cat" toc-section="bind">
+                    <h2 toc-anchor="bind">Bind markers</h2>
+
+                    <section class="ex" toc-section="bind/routing">
+                        <h3 toc-anchor="bind/routing" toc-label="Routing">Prepared, and routed by the drivers</h3>
+                        <p class="note">Every query above can be prepared. The Lexis drivers compute the
+                           same token range as the server and send the statement to the replica and shard
+                           that hold it: a full key goes straight to its partition, and a prefix, or a
+                           prefix ending in a range, goes to the tablet where its range starts, which for
+                           most prefixes is the only one.</p>
+                        <code-block syntax="python" filename="app.py" motion-reveal>${escape`${BIND}`}</code-block>
+                    </section>
+                </section>
+
+                <section class="cat" toc-section="filtering">
+                    <h2 toc-anchor="filtering" toc-label="ALLOW FILTERING">Queries that still need ALLOW FILTERING</h2>
+
+                    <section class="ex" toc-section="filtering/no-user">
+                        <h3 toc-anchor="filtering/no-user">No user named</h3>
+                        <cql-session motion-reveal>${escape`${NO_USER}`}</cql-session>
+                        <pre class="err">Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING</pre>
+                        <p class="note">With <code class="inline">ALLOW FILTERING</code> this scans the whole table.</p>
+                    </section>
+
+                    <section class="ex" toc-section="filtering/after-range">
+                        <h3 toc-anchor="filtering/after-range">A column after a range</h3>
+                        <cql-session motion-reveal>${escape`${AFTER_RANGE}`}</cql-session>
+                        <pre class="err">Only EQ and IN relation are supported on the partition key (unless you use the token() function or ALLOW FILTERING)</pre>
+                        <p class="note">With <code class="inline">ALLOW FILTERING</code> this reads only the
+                           users after <code class="inline">'u1'</code> and filters them.</p>
+                        <cql-session pk="2" badge="filtered" motion-reveal>${escape`${AFTER_RANGE_FILTERED}`}</cql-session>
                     </section>
                 </section>
             </main>

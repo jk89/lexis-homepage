@@ -1,4 +1,4 @@
-import { BehaviorSubject, map, type Observable } from 'rxjs';
+import { map, type Observable } from 'rxjs';
 import { Component, RxElement, state } from '@yaw-rx/core';
 import { RxFor } from '@yaw-rx/core/directives/rx-for';
 import { RxIf } from '@yaw-rx/core/directives/rx-if';
@@ -55,10 +55,10 @@ export class CqlSession extends RxElement {
     @state pk = 0;
     /** Optional pill in the title bar, e.g. "range read". */
     @state badge = '';
-    readonly statement$ = new BehaviorSubject<readonly Token[]>([]);
-    readonly hasResult$ = new BehaviorSubject(false);
-    readonly headers$ = new BehaviorSubject<readonly string[]>([]);
-    readonly rows$ = new BehaviorSubject<readonly Row[]>([]);
+    @state statement: readonly Token[] = [];
+    @state hasResult = false;
+    @state headers: readonly string[] = [];
+    @state rows: readonly Row[] = [];
     private sourceEl!: HTMLElement;
 
     get count$(): Observable<string> {
@@ -67,18 +67,18 @@ export class CqlSession extends RxElement {
 
     override onRender(): void {
         const [stmt = '', result] = dedent(readInert(this.sourceEl)).split(/\n---\n/);
-        this.statement$.next(highlightCql(stmt.trim()));
+        this.statement = highlightCql(stmt.trim());
         if (result === undefined) return;
 
         const lines = result.split('\n').filter((l) => l.trim() !== '');
         const split = (l: string): string[] => l.split('|').map((c) => c.trim());
-        this.headers$.next(split(lines[0] ?? ''));
-        this.rows$.next(lines.slice(1)
+        this.headers = split(lines[0] ?? '');
+        this.rows = lines.slice(1)
             .filter((l) => !/^[-+\s]+$/.test(l))
             .map((l, key) => ({
                 key,
                 cells: split(l).map((text, i) => ({ text, pk: i < this.pk && !text.startsWith('0x'), blob: text.startsWith('0x') })),
-            })));
-        this.hasResult$.next(true);
+            }));
+        this.hasResult = true;
     }
 }
