@@ -1,0 +1,104 @@
+:root {
+    /* backgrounds: aubergine leaning blue, dark to light */
+    --black: #1f0a24;
+    --bg-1: #240d29;
+    --bg-2: #29102e;
+    --bg-3: #311536;
+    --bg-4: #381a3e;
+    --bg-5: #422147;
+    --bg-6: #4c2951;
+    --bg-7: #57325c;
+
+    /* borders */
+    --border: #67406c;
+    --border-light: #7a547f;
+
+    /* foreground, dim to bright */
+    --dim: #a68f9f;
+    --slate: #a99db0;
+    --muted: #b9a6b4;
+    --muted-alt: #c4b3bf;
+    --secondary: #d7c9d2;
+    --subtle: #e2d7de;
+    --text: #f0e8ed;
+    --text-light: #f7f2f5;
+    --white: #fff;
+
+    /* accent + semantic: the logo's colours, muted */
+    --accent: #d4b0e6;
+    --sky: #afc0d1;
+    --steel: #8e9dba;
+    --indigo: #8786b0;
+    --lilac: #a08ab2;
+    --rose: #e3a8c7;
+    --navy: #2a1e4a;
+    --green: #a6d6a0;
+    --red: #f08a8a;
+    --blue: #8e9dba;
+    --amber: #f0c27b;
+    --gold: #f0d29b;
+    --salmon: #f0a58c;
+
+    /* typography */
+    --font-sans: 'Ubuntu', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'Ubuntu Mono', 'Fira Code', ui-monospace, monospace;
+    --tracking: 0.08em;
+
+    /* shape */
+    --radius-sm: 4px;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --border-width: 1px;
+}
+
+html {
+    font-size: 100%;
+    scroll-behavior: smooth;
+}
+
+html, body {
+    margin: 0;
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    background:
+        radial-gradient(1200px 700px at 85% -10%, rgba(104, 38, 126, 0.35), transparent 60%),
+        radial-gradient(900px 600px at -10% 30%, rgba(80, 42, 100, 0.35), transparent 60%),
+        var(--black);
+    background-attachment: fixed;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+::selection {
+    background: rgba(212, 176, 230, 0.35);
+}
+
+a {
+    color: var(--accent);
+}
+
+button {
+    user-select: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+button:active {
+    transform: scale(0.96);
+    filter: brightness(1.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

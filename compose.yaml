@@ -1,0 +1,9 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: lexis-homepage/Dockerfile
+      args:
+        NGINX_CONF: nginx.conf
+    ports:
+      - "3020:80"

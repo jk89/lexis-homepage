@@ -1,0 +1,47 @@
+{
+  "name": "lexis-homepage",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "prepare": "ts-patch install",
+    "dev": "vite --host",
+    "build": "rm -rf dist && vite build",
+    "build:vite": "rm -rf dist && vite build",
+    "build:ssg": "yaw-ssg dist public",
+    "build:ssg:deep-routes": "yaw-ssg dist public && node scripts/deep-routes.mjs public",
+    "ssl:generate": "mkdir -p ssl && openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ssl/key.pem -out ssl/cert.pem -subj '/CN=localhost'",
+    "docker:build:dev": "docker compose -f compose.dev.yaml build --no-cache",
+    "docker:build:prod": "docker compose build --no-cache",
+    "docker:up:dev": "docker compose -f compose.dev.yaml up --remove-orphans; docker compose -f compose.dev.yaml down --volumes --remove-orphans",
+    "docker:up:prod": "docker compose up",
+    "docker:down:dev": "docker compose -f compose.dev.yaml down --volumes --remove-orphans",
+    "docker:down:prod": "docker compose down",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --check src/",
+    "format:fix": "prettier --write src/",
+    "vscode:install": "cd ../yaw/yaw/packages/yaw-vscode && npm run build && ln -sfn \"$(pwd)\" \"$HOME/.vscode/extensions/yaw-rx.yaw-vscode\" && code --install-extension PolyMeilex.wgsl"
+  },
+  "dependencies": {
+    "motion": "^12.0.0",
+    "rxjs": "8.0.0-alpha.14",
+    "@yaw-rx/common": "file:../yaw/yaw/packages/yaw-common",
+    "@yaw-rx/core": "file:../yaw/yaw/packages/yaw",
+    "@yaw-rx/transformer": "file:../yaw/yaw/packages/yaw-transformer"
+  },
+  "devDependencies": {
+    "ts-patch": "^3.3.0",
+    "typescript": "^6.0.3",
+    "vite": "^5.0.0",
+    "@yaw-rx/vite": "file:../yaw/yaw/packages/yaw-vite",
+    "@yaw-rx/ts-plugin": "file:../yaw/yaw/packages/yaw-ts-plugin",
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "typescript-eslint": "^8.59.0",
+    "prettier": "^3.8.0",
+    "@yaw-rx/ssg": "file:../yaw/yaw/packages/yaw-ssg"
+  }
+}

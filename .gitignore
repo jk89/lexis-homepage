@@ -1,0 +1,5 @@
+node_modules
+dist
+public
+ssl/cert.pem
+ssl/key.pem
