@@ -70,7 +70,7 @@ import './lexis-logo.component.js';
             .links { gap: 1rem; }
         }
         @media (max-width: 480px) {
-            .logo-text { display: none; }
+            .logo { font-size: 1.1rem; margin-right: 0.75rem; gap: 0.45rem; }
             .links a { font-size: 0.8rem; letter-spacing: 0; }
         }
     `

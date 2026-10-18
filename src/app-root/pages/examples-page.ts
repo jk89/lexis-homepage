@@ -290,7 +290,8 @@ const INTS = `SELECT sensor FROM readings WHERE sensor > -1;
                         font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.55; color: var(--subtle);
                         background: rgba(10,2,12,0.45); border-left: 2px solid var(--rose); border-radius: var(--radius-sm); }
         .note { color: var(--secondary); line-height: 1.7; max-width: 70ch; margin: 0 0 1.1rem; font-weight: 300; }
-        .inline { font-family: var(--font-mono); background: rgba(255,255,255,0.07); padding: 0.08rem 0.4rem;
+        .inline { overflow-wrap: anywhere; word-break: break-word;
+                  font-family: var(--font-mono); background: rgba(255,255,255,0.07); padding: 0.08rem 0.4rem;
                   border-radius: 4px; color: var(--accent); font-size: 0.95em; }
         .ex > cql-session, .ex > code-block { margin-bottom: 1rem; }
         .ex > .paths { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.25rem;
