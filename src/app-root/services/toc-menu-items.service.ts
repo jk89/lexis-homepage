@@ -26,8 +26,11 @@ import { getGlobalSSGState, setGlobalSSGState } from '@yaw-rx/core/hydrate/globa
 import { isSSGCapture } from '@yaw-rx/core/hydrate/state';
 import { Router } from '@yaw-rx/core/router';
 
-/** The homepage lives at /, which the router can't prefix; its sections go under this path instead. */
-const ROOT_BASE = '/overview';
+/**
+ * Base path for section URLs of a page served at /, which the router can't
+ * prefix. Provide it where such a page is mounted; '' means none.
+ */
+export const TOC_ROOT_BASE = Symbol('TOC_ROOT_BASE');
 
 export interface TocEntry {
     readonly id: string;
@@ -37,7 +40,7 @@ export interface TocEntry {
 }
 
 
-@Injectable([Router])
+@Injectable([Router, TOC_ROOT_BASE])
 export class TocMenuItemsService {
     @state activeId = '';
     @state expandAll = false;
@@ -63,7 +66,7 @@ export class TocMenuItemsService {
 
     private blobSubs: Subscription[] = [];
 
-    constructor(router: Router) {
+    constructor(router: Router, private readonly rootBase: string) {
         this.router = router;
 
         this.subscribeToBlob(router.route$.getValue());
@@ -83,7 +86,7 @@ export class TocMenuItemsService {
                 if (!id || this.basePath === undefined) return;
                 const loc = window.location.pathname;
                 const onPage = loc === this.basePath || loc.startsWith(this.basePath + '/') ||
-                    (loc === '/' && this.basePath === ROOT_BASE);
+                    (loc === '/' && this.rootBase !== '' && this.basePath === this.rootBase);
                 if (!onPage) return;
                 const path = this.idToPath.get(id) ?? id;
                 history.replaceState(null, '', this.basePath + '/' + path);
@@ -120,8 +123,8 @@ export class TocMenuItemsService {
             this.scrollTo(id);
             return;
         }
-        // The page at / keeps its section URLs under ROOT_BASE.
-        this.basePath = full === '/' ? ROOT_BASE : full;
+        // A page at / keeps its section URLs under the provided root base.
+        this.basePath = full === '/' && this.rootBase !== '' ? this.rootBase : full;
     }
 
     registerSection(path: string, depth: number, element: HTMLElement): void {

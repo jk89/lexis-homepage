@@ -1,0 +1,6 @@
+:host { display: inline-block; line-height: 0; }
+svg { width: 100%; height: auto; display: block; }
+.hex { fill: #13061a; stroke: #13061a; }
+.shape > * { fill: #361a40; stroke: #361a40; }
+.labels > text { fill: #c2adbc; font-family: 'Ubuntu', 'DejaVu Sans', Arial, sans-serif;
+                 font-size: 72px; font-weight: 700; text-anchor: middle; letter-spacing: 6px; }

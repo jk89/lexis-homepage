@@ -57,17 +57,15 @@ const delta = (a: number, b: number): number => {
 @Directive({ selector: '[token-ring-bg]' })
 export class TokenRingBg {
     node!: RxElementLike;
-    private canvas: HTMLCanvasElement | undefined;
     private frame = 0;
     private ro: ResizeObserver | undefined;
+    private io: IntersectionObserver | undefined;
     private onMove: ((e: PointerEvent) => void) | undefined;
+    private onVisibility: (() => void) | undefined;
 
     onInit(): void {
-        const host = this.node as unknown as HTMLElement;
-        const canvas = document.createElement('canvas');
-        canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;';
-        host.appendChild(canvas);
-        this.canvas = canvas;
+        // The directive sits on the <canvas> itself.
+        const canvas = this.node as unknown as HTMLCanvasElement;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
@@ -75,11 +73,11 @@ export class TokenRingBg {
         let w = 0, h = 0, dpr = 1;
         const resize = (): void => {
             dpr = Math.min(window.devicePixelRatio || 1, 2);
-            w = host.clientWidth; h = host.clientHeight;
+            w = canvas.clientWidth; h = canvas.clientHeight;
             canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
         };
         this.ro = new ResizeObserver(resize);
-        this.ro.observe(host);
+        this.ro.observe(canvas);
         resize();
 
         let px = 0, py = 0, tx = 0, ty = 0;
@@ -344,15 +342,35 @@ export class TokenRingBg {
             });
 
             ctx.globalAlpha = 1;
-            if (!reduced) this.frame = requestAnimationFrame(draw);
+            if (!reduced && running) this.frame = requestAnimationFrame(draw);
         };
-        this.frame = requestAnimationFrame(draw);
+
+        // Only draw while the ring is on screen and the tab is visible: no frames spent off-screen.
+        let running = false;
+        let onScreen = false;
+        const update = (): void => {
+            const should = onScreen && document.visibilityState === 'visible';
+            if (should === running) return;
+            running = should;
+            if (running) {
+                lastNow = performance.now();
+                this.frame = requestAnimationFrame(draw);
+            } else {
+                cancelAnimationFrame(this.frame);
+            }
+        };
+        this.io = new IntersectionObserver(([e]) => { onScreen = !!e?.isIntersecting; update(); });
+        this.io.observe(canvas);
+        this.onVisibility = update;
+        document.addEventListener('visibilitychange', this.onVisibility);
+        if (reduced) this.frame = requestAnimationFrame(draw);
     }
 
     onDestroy(): void {
         cancelAnimationFrame(this.frame);
         this.ro?.disconnect();
+        this.io?.disconnect();
         if (this.onMove) window.removeEventListener('pointermove', this.onMove);
-        this.canvas?.remove();
+        if (this.onVisibility) document.removeEventListener('visibilitychange', this.onVisibility);
     }
 }

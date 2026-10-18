@@ -1,0 +1,16 @@
+/* Layout shared by the install and examples pages. */
+:host { display: block; min-height: 100vh; color: var(--text); }
+:host > .layout { display: flex; }
+.layout > .content { flex: 1 1 0; min-width: 0; padding: 6.5rem 2.5rem 5rem; max-width: 1020px; }
+.intro > .eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.2em;
+           text-transform: uppercase; color: var(--sky); }
+.intro > h1 { color: var(--white); font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 700;
+     letter-spacing: -0.03em; margin: 0.6rem 0 1rem; line-height: 1.05; }
+.content > .cat { padding: 3rem 0 0.5rem; border-top: var(--border-width) solid rgba(255,255,255,0.08); }
+.cat > h2 { color: var(--white); font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
+.cat > .ex { padding: 1.75rem 0 0.75rem; margin-left: 0.25rem; }
+.ex > h3 { color: var(--white); font-size: 1.2rem; font-weight: 500; margin: 0 0 0.6rem; }
+.note { color: var(--secondary); line-height: 1.7; max-width: 70ch; margin: 0 0 1.1rem; font-weight: 300; }
+@media (max-width: 768px) {
+    .layout > .content { padding: 5.5rem 1.1rem 4rem; }
+}

@@ -1,42 +1,15 @@
 import { Component, RxElement } from '@yaw-rx/core';
+import template from './lexis-logo.component.svg';
+import styles from './lexis-logo.component.css';
 
 /**
  * The Lexis mark, flat and matte: the original structure (byte column
  * 00 → FF, divider, three tablets) in solid tones only. The hexagon is a
- * tone deeper than the page so it reads as cut out of it. No gradients,
- * shadows or highlights, and no animation.
+ * tone deeper than the page so it reads as cut out of it.
  */
 @Component({
     selector: 'lexis-logo',
-    template: `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="210 111 835 1024" role="img" aria-label="Lexis">
-            <path class="hex" stroke-width="30" stroke-linejoin="round"
-                  d="M 671.9,172.3 L 965.1,343.7 Q 1010,370 1010.0,422.0 L 1010.0,828.0 Q 1010,880 964.9,905.9 L 672.1,1074.1 Q 627,1100 581.9,1074.0 L 290.1,906.0 Q 245,880 245.0,828.0 L 245.0,422.0 Q 245,370 289.9,343.7 L 582.1,172.3 Q 627,146 671.9,172.3 Z"/>
-            <g class="shape">
-                <rect x="380" y="362" width="155" height="128" rx="6"/>
-                <rect x="380" y="505" width="155" height="128" rx="6"/>
-                <rect x="380" y="648" width="155" height="125" rx="6"/>
-                <rect x="380" y="787" width="155" height="123" rx="6"/>
-                <line x1="590" y1="332" x2="590" y2="903" stroke-width="18" stroke-linecap="round"/>
-                <polygon points="619,399 846,399 886,459 846,519 619,519" stroke-width="8" stroke-linejoin="round"/>
-                <polygon points="619,556 879,556 921,621 879,686 619,686" stroke-width="8" stroke-linejoin="round"/>
-                <polygon points="619,722 879,722 921,785 879,848 619,848" stroke-width="8" stroke-linejoin="round"/>
-            </g>
-            <g class="labels">
-                <text x="458" y="452">00</text>
-                <text x="458" y="595">7F</text>
-                <text x="458" y="736">80</text>
-                <text x="458" y="873">FF</text>
-            </g>
-        </svg>
-    `,
-    styles: `
-        :host { display: inline-block; line-height: 0; }
-        svg { width: 100%; height: auto; display: block; }
-        .hex { fill: #13061a; stroke: #13061a; }
-        .shape > * { fill: #361a40; stroke: #361a40; }
-        .labels > text { fill: #c2adbc; font-family: 'Ubuntu', 'DejaVu Sans', Arial, sans-serif;
-                         font-size: 72px; font-weight: 700; text-anchor: middle; letter-spacing: 6px; }
-    `,
+    template,
+    styles,
 })
 export class LexisLogo extends RxElement {}

@@ -1,37 +1,43 @@
-import { animate } from 'motion';
-import { map, type Observable } from 'rxjs';
+import { combineLatest, interval, map, Subject, takeUntil, type Observable, type Subscription } from 'rxjs';
 import { Component, RxElement, state } from '@yaw-rx/core';
+import { RxFor } from '@yaw-rx/core/directives/rx-for';
+import { Flip } from '../../directives/flip.directive.js';
+import styles from './partition-viz.component.css';
 
 /**
- * Hash versus order. Twelve document paths placed on three nodes, first
- * the way Murmur3 places them (by a hash of the whole path), then the way
- * Lexis does (by the path itself, cut into tablets). A prefix query
+ * Hash versus order. Twelve user_orders keys placed on three nodes, first
+ * the way Murmur3 places them (by a hash of the whole key), then the way
+ * Lexis does (by the key itself, cut into tablets). A query on the user
  * highlights its matches: scattered over every node in one mode, one
  * contiguous range in the other.
  */
 
 type Mode = 'murmur' | 'lexis';
 
+// (user_id, order_id) keys, in key order.
 const KEYS = [
-    'collection/c1/d1', 'collection/c1/d2',
-    'collection/c42/d100', 'collection/c42/d101', 'collection/c42/d250',
-    'collection/c7/d3', 'collection/c9/d8',
-    'orders/o1/i1', 'orders/o1/i2',
-    'users/u2/p4', 'users/u7/p1', 'users/u7/p2',
+    'u1/o1', 'u1/o2',
+    'u42/o100', 'u42/o101', 'u42/o250',
+    'u5/o3', 'u5/o9',
+    'u7/o5', 'u7/o6',
+    'u9/o2', 'u9/o4', 'u9/o8',
 ];
 
+const userOf = (key: string): string => key.split('/')[0]!;
+const USERS = [...new Set(KEYS.map(userOf))];
+
 // Ring order under Murmur3: index into KEYS for each of the 12 slots,
-// four slots per node. Hash order has nothing to do with path order.
+// four slots per node. Hash order has nothing to do with key order.
 const MURMUR_SLOTS = [3, 10, 6, 0, 8, 2, 11, 5, 1, 9, 4, 7];
 
 const NODES = 3;
 const SLOTS_PER_NODE = 4;
 const TABLET_SIZE = 2;
 
-const QUERIES: readonly { label: string; prefix: string }[] = [
-    { label: `coll = 'collection' AND colid = 'c42'`, prefix: 'collection/c42/' },
-    { label: `coll = 'collection'`, prefix: 'collection/' },
-    { label: `coll = 'users'`, prefix: 'users/' },
+const QUERIES: readonly { label: string; matches: (user: string) => boolean }[] = [
+    { label: `user_id = 'u42'`, matches: (u) => u === 'u42' },
+    { label: `user_id >= 'u5' AND user_id < 'u8'`, matches: (u) => u >= 'u5' && u < 'u8' },
+    { label: `user_id = 'u9'`, matches: (u) => u === 'u9' },
 ];
 
 /** Global slot index (node * SLOTS_PER_NODE + row) for each key, per mode. */
@@ -43,10 +49,24 @@ const slotFor = (mode: Mode, keyIndex: number): number => {
     return node * SLOTS_PER_NODE + pair * TABLET_SIZE + (keyIndex % TABLET_SIZE);
 };
 
-const group = (key: string): string => key.split('/')[0]!;
+/** Grid position classes for a global slot index. */
+const place = (slot: number): string =>
+    `col-${String(Math.floor(slot / SLOTS_PER_NODE))} row-${String(slot % SLOTS_PER_NODE)}`;
+
+const hitsFor = (queryIndex: number): boolean[] =>
+    KEYS.map((k) => QUERIES[queryIndex]!.matches(userOf(k)));
+
+const hitTablets = (hits: readonly boolean[]): Set<number> => {
+    const set = new Set<number>();
+    hits.forEach((h, i) => { if (h) set.add(Math.floor(i / TABLET_SIZE)); });
+    return set;
+};
+
+const NODE_VIEWS = Array.from({ length: NODES }, (_, n) => ({ id: n, num: String(n + 1) }));
 
 @Component({
     selector: 'partition-viz',
+    directives: [RxFor, Flip],
     template: `
         <div class="controls">
             <div class="seg">
@@ -55,232 +75,93 @@ const group = (key: string): string => key.split('/')[0]!;
             </div>
             <div class="queries">
                 <span class="qlabel">WHERE</span>
-                <button class="q" [class.on]="isQuery('0')" onclick="query0">coll = 'collection' AND colid = 'c42'</button>
-                <button class="q" [class.on]="isQuery('1')" onclick="query1">coll = 'collection'</button>
-                <button class="q" [class.on]="isQuery('2')" onclick="query2">coll = 'users'</button>
+                <span class="query-list" rx-for="q of queryViews by i"><button class="q" [class.on]="q.on" onclick="setQuery(q.i)">{{q.label}}</button></span>
             </div>
         </div>
-        <div class="stage"></div>
+        <div class="stage" [class.lexis]="isMode('lexis')">
+            <div class="nodes" rx-for="n of nodes by id">
+                <div class="node" [class.scan]="isMode('murmur')"><span class="node-label">node <b>{{n.num}}</b></span><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+            </div>
+            <div class="frames" rx-for="f of frames by id">
+                <div [className]="f.cls"><span class="tl">{{f.label}}</span></div>
+            </div>
+            <div class="chips" rx-for="c of chips by id" flip="170 22 0.9 0.025">
+                <div [className]="c.cls"><i></i>{{c.key}}</div>
+            </div>
+        </div>
         <div class="verdict" [class.bad]="isMode('murmur')">
             <span class="dot"></span><span>{{verdict}}</span>
         </div>
     `,
-    styles: `
-        :host { display: block; position: relative; }
-        .controls { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between;
-                    align-items: center; margin-bottom: 1.25rem; }
-        .seg { display: inline-flex; padding: 4px; border-radius: 999px;
-               background: rgba(0,0,0,0.25); border: var(--border-width) solid rgba(255,255,255,0.08); }
-        .seg button { background: none; border: none; color: var(--muted); padding: 0.5rem 1rem;
-                      border-radius: 999px; font-size: 0.85rem; transition: background 0.25s, color 0.25s; }
-        .seg button.on { background: rgba(255,255,255,0.1); color: var(--white);
-                         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
-        .queries { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
-        .qlabel { font-family: var(--font-mono); color: var(--dim); font-size: 0.8rem; margin-right: 0.2rem; }
-        .q { font-family: var(--font-mono); font-size: 0.78rem; color: var(--secondary);
-             background: rgba(255,255,255,0.03); border: var(--border-width) solid rgba(255,255,255,0.1);
-             padding: 0.35rem 0.65rem; border-radius: var(--radius); }
-        .q.on { color: var(--white); border-color: var(--accent); background: rgba(212,176,230,0.12); }
-
-        .stage { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-        .node { position: relative; border-radius: var(--radius-lg); padding: 3.1rem 0.75rem 0.75rem;
-                background: rgba(20,4,16,0.45); border: var(--border-width) solid rgba(255,255,255,0.07);
-                transition: border-color 0.4s, box-shadow 0.4s; }
-        .node.scan { border-color: rgba(142,157,186,0.55); box-shadow: 0 0 0 1px rgba(142,157,186,0.25), 0 0 40px -12px rgba(142,157,186,0.6); }
-        .node-label { position: absolute; top: 0.8rem; left: 0.9rem; font-size: 0.72rem;
-                      letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
-        .node-label b { color: var(--secondary); font-weight: 500; }
-        .slot { height: 2.6rem; margin-bottom: 0.45rem; border-radius: var(--radius);
-                border: 1px dashed rgba(255,255,255,0.05); }
-        .slot:nth-child(2n+1):not(:first-child) { }
-        .tablet { position: absolute; left: 0.4rem; right: 0.4rem; border-radius: 10px;
-                  border: 1px solid rgba(175,192,209,0.0); pointer-events: none;
-                  transition: border-color 0.5s, background 0.5s, box-shadow 0.5s, opacity 0.5s; opacity: 0; }
-        .tablet .tl { position: absolute; top: -0.55rem; right: 0.6rem; font-size: 0.62rem;
-                      font-family: var(--font-mono); color: var(--sky); background: var(--bg-2);
-                      padding: 0 0.35rem; border-radius: 4px; letter-spacing: 0.04em; }
-        .lexis .tablet { opacity: 1; border-color: rgba(175,192,209,0.28); }
-        .lexis .tablet.hit { border-color: rgba(212,176,230,0.9); background: rgba(212,176,230,0.07);
-                             box-shadow: 0 0 30px -8px rgba(212,176,230,0.7); }
-
-        .chip { position: absolute; top: 0; left: 0; height: 2.6rem; display: flex; align-items: center;
-                gap: 0.55rem; padding: 0 0.75rem; border-radius: var(--radius);
-                font-family: var(--font-mono); font-size: 0.85rem; color: var(--text);
-                background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
-                border: var(--border-width) solid rgba(255,255,255,0.1);
-                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; will-change: transform;
-                transition: opacity 0.4s, border-color 0.4s, box-shadow 0.4s, background 0.4s; }
-        .chip i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-        .chip.g-collection i { background: var(--sky); }
-        .chip.g-orders i { background: var(--indigo); }
-        .chip.g-users i { background: var(--lilac); }
-        .chip.dim { opacity: 0.32; }
-        .chip.hit { border-color: rgba(212,176,230,0.85); color: var(--white);
-                    background: linear-gradient(180deg, rgba(212,176,230,0.28), rgba(212,176,230,0.12));
-                    box-shadow: 0 6px 24px -8px rgba(212,176,230,0.8); }
-
-        .verdict { margin-top: 1.25rem; display: flex; align-items: center; gap: 0.7rem;
-                   font-size: 0.98rem; color: var(--secondary); min-height: 1.6rem; }
-        .verdict .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green);
-                        box-shadow: 0 0 12px var(--green); flex: none; transition: background 0.3s, box-shadow 0.3s; }
-        .verdict.bad .dot { background: var(--steel); box-shadow: 0 0 12px var(--steel); }
-        @media (max-width: 720px) {
-            .stage { gap: 0.4rem; }
-            .node { padding: 2.9rem 0.3rem 0.3rem; }
-            .chip { font-size: 0.62rem; padding: 0 0.35rem; gap: 0.3rem; }
-            .chip i { width: 6px; height: 6px; }
-            .tablet .tl { display: none; }
-        }
-    `,
+    styles,
 })
 export class PartitionViz extends RxElement {
     @state mode: Mode = 'murmur';
     @state queryIndex = 0;
-    @state verdict = '';
+    readonly nodes = NODE_VIEWS;
+    private readonly stopAuto = new Subject<void>();
+    private auto: Subscription | undefined;
 
-    private stage!: HTMLElement;
-    private nodes: HTMLElement[] = [];
-    private slots: HTMLElement[] = [];
-    private chips: HTMLElement[] = [];
-    private tablets: HTMLElement[] = [];
-    private auto = 0;
-    private ro: ResizeObserver | undefined;
+    get queryViews$(): Observable<readonly { i: number; label: string; on: boolean }[]> {
+        return this.queryIndex$.pipe(map((qi) => QUERIES.map((q, i) => ({ i, label: q.label, on: i === qi }))));
+    }
+
+    get chips$(): Observable<readonly { id: number; key: string; cls: string }[]> {
+        return combineLatest([this.mode$, this.queryIndex$]).pipe(map(([mode, qi]) => {
+            const hits = hitsFor(qi);
+            return KEYS.map((key, i) => ({
+                id: i,
+                key: key.replace(/^([^/]+)\/(.+)$/, 'user_id:$1/order_id:$2'),
+                cls: `chip tone-${String(USERS.indexOf(userOf(key)) % 3)} ${place(slotFor(mode, i))} ${hits[i] ? 'hit' : 'dim'}`,
+            }));
+        }));
+    }
+
+    get frames$(): Observable<readonly { id: number; label: string; cls: string }[]> {
+        return this.queryIndex$.pipe(map((qi) => {
+            const hit = hitTablets(hitsFor(qi));
+            return Array.from({ length: KEYS.length / TABLET_SIZE }, (_, t) => ({
+                id: t,
+                label: `tablet ${String(t)}`,
+                cls: `tablet ${place(slotFor('lexis', t * TABLET_SIZE))}${hit.has(t) ? ' hit' : ''}`,
+            }));
+        }));
+    }
+
+    get verdict$(): Observable<string> {
+        return combineLatest([this.mode$, this.queryIndex$]).pipe(map(([mode, qi]) => {
+            const hits = hitsFor(qi);
+            const count = hits.filter(Boolean).length;
+            if (mode === 'murmur') {
+                const nodes = new Set<number>();
+                hits.forEach((h, i) => { if (h) nodes.add(Math.floor(slotFor('murmur', i) / SLOTS_PER_NODE)); });
+                return `Hashed by the whole key: ${String(count)} matches spread over ` +
+                    `${String(nodes.size)} of ${String(NODES)} nodes.`;
+            }
+            const n = hitTablets(hits).size;
+            return `Ordered by key: ${String(count)} matches in one contiguous range, ` +
+                `${String(n)} adjacent tablet${n === 1 ? '' : 's'}, read in key order.`;
+        }));
+    }
 
     override onInit(): void {
-        this.stage = this.querySelector('.stage')!;
-        this.stage.replaceChildren(); // drop nodes and chips captured by SSG before building them live
-        for (let n = 0; n < NODES; n++) {
-            const node = document.createElement('div');
-            node.className = 'node';
-            node.innerHTML = `<span class="node-label">node <b>${String(n + 1)}</b></span>`;
-            for (let s = 0; s < SLOTS_PER_NODE; s++) {
-                const slot = document.createElement('div');
-                slot.className = 'slot';
-                node.appendChild(slot);
-                this.slots.push(slot);
-            }
-            this.stage.appendChild(node);
-            this.nodes.push(node);
-        }
-        for (let t = 0; t < KEYS.length / TABLET_SIZE; t++) {
-            const tablet = document.createElement('div');
-            tablet.className = 'tablet';
-            tablet.innerHTML = `<span class="tl">tablet ${String(t)}</span>`;
-            this.stage.appendChild(tablet);
-            this.tablets.push(tablet);
-        }
-        for (const key of KEYS) {
-            const chip = document.createElement('div');
-            chip.className = `chip g-${group(key)}`;
-            chip.innerHTML = `<i></i>${key}`;
-            this.stage.appendChild(chip);
-            this.chips.push(chip);
-        }
-
-        this.ro = new ResizeObserver(() => this.layout(false));
-        this.ro.observe(this.stage);
-        this.layout(false);
-        this.mode$.subscribe(() => this.layout(true));
-        this.queryIndex$.subscribe(() => this.highlight());
-        this.startAuto();
+        let tick = 0;
+        this.auto = interval(3800).pipe(takeUntil(this.stopAuto)).subscribe(() => {
+            tick++;
+            if (tick % 2 === 0) this.queryIndex = (this.queryIndex + 1) % QUERIES.length;
+            this.mode = this.mode === 'murmur' ? 'lexis' : 'murmur';
+        });
     }
 
     override onDestroy(): void {
-        clearInterval(this.auto);
-        this.ro?.disconnect();
+        this.auto?.unsubscribe();
     }
 
     isMode(mode: Mode): Observable<boolean> {
         return this.mode$.pipe(map((m) => m === mode));
     }
 
-    isQuery(i: string): Observable<boolean> {
-        return this.queryIndex$.pipe(map((q) => String(q) === i));
-    }
-
-    setMurmur(): void { this.stopAuto(); this.mode = 'murmur'; }
-    setLexis(): void { this.stopAuto(); this.mode = 'lexis'; }
-    query0(): void { this.stopAuto(); this.queryIndex = 0; }
-    query1(): void { this.stopAuto(); this.queryIndex = 1; }
-    query2(): void { this.stopAuto(); this.queryIndex = 2; }
-
-    private startAuto(): void {
-        let tick = 0;
-        this.auto = window.setInterval(() => {
-            tick++;
-            if (tick % 2 === 0) this.queryIndex = (this.queryIndex + 1) % QUERIES.length;
-            this.mode = this.mode === 'murmur' ? 'lexis' : 'murmur';
-        }, 3800);
-    }
-
-    private stopAuto(): void {
-        clearInterval(this.auto);
-    }
-
-    private slotRect(slot: HTMLElement): { x: number; y: number; w: number; h: number } {
-        const node = slot.parentElement!;
-        return {
-            x: node.offsetLeft + slot.offsetLeft,
-            y: node.offsetTop + slot.offsetTop,
-            w: slot.offsetWidth,
-            h: slot.offsetHeight,
-        };
-    }
-
-    private layout(animated: boolean): void {
-        if (this.slots.length === 0) return;
-        const mode = this.mode;
-        this.stage.classList.toggle('lexis', mode === 'lexis');
-
-        this.chips.forEach((chip, i) => {
-            const r = this.slotRect(this.slots[slotFor(mode, i)]!);
-            chip.style.width = `${String(r.w)}px`;
-            if (animated) {
-                animate(chip, { x: r.x, y: r.y },
-                    { type: 'spring', stiffness: 170, damping: 22, mass: 0.9, delay: i * 0.025 });
-            } else {
-                animate(chip, { x: r.x, y: r.y }, { duration: 0 });
-            }
-        });
-
-        this.tablets.forEach((tablet, t) => {
-            const first = this.slotRect(this.slots[slotFor('lexis', t * TABLET_SIZE)]!);
-            const last = this.slotRect(this.slots[slotFor('lexis', t * TABLET_SIZE + TABLET_SIZE - 1)]!);
-            const pad = 5;
-            tablet.style.left = `${String(first.x - pad)}px`;
-            tablet.style.width = `${String(first.w + pad * 2)}px`;
-            tablet.style.top = `${String(first.y - pad)}px`;
-            tablet.style.height = `${String(last.y + last.h - first.y + pad * 2)}px`;
-        });
-        this.highlight();
-    }
-
-    private highlight(): void {
-        if (this.chips.length === 0) return;
-        const { prefix } = QUERIES[this.queryIndex]!;
-        const hits = KEYS.map((k) => k.startsWith(prefix));
-        this.chips.forEach((chip, i) => {
-            chip.classList.toggle('hit', hits[i]!);
-            chip.classList.toggle('dim', !hits[i]);
-        });
-
-        const hitTablets = new Set<number>();
-        hits.forEach((h, i) => { if (h) hitTablets.add(Math.floor(i / TABLET_SIZE)); });
-        this.tablets.forEach((tablet, t) => tablet.classList.toggle('hit', hitTablets.has(t)));
-
-        const murmur = this.mode === 'murmur';
-        this.nodes.forEach((node) => node.classList.toggle('scan', murmur));
-
-        const count = hits.filter(Boolean).length;
-        if (murmur) {
-            const nodes = new Set<number>();
-            hits.forEach((h, i) => { if (h) nodes.add(Math.floor(slotFor('murmur', i) / SLOTS_PER_NODE)); });
-            this.verdict = `Hashed by the whole path: ${String(count)} matches spread over ` +
-                `${String(nodes.size)} of ${String(NODES)} nodes.`;
-        } else {
-            const n = hitTablets.size;
-            this.verdict = `Ordered by path: ${String(count)} matches in one contiguous range, ` +
-                `${String(n)} adjacent tablet${n === 1 ? '' : 's'}, read in key order.`;
-        }
-    }
+    setMurmur(): void { this.stopAuto.next(); this.mode = 'murmur'; }
+    setLexis(): void { this.stopAuto.next(); this.mode = 'lexis'; }
+    setQuery(i: number): void { this.stopAuto.next(); this.queryIndex = i; }
 }

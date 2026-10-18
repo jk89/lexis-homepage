@@ -3,7 +3,7 @@ import { viteTransform, viteAssets } from '@yaw-rx/vite';
 
 export default defineConfig({
     root: '.',
-    plugins: [viteAssets(['.css']), viteTransform()],
+    plugins: [viteAssets(['.css', '.svg']), viteTransform()],
     esbuild: { target: 'es2022' },
     resolve: {
         dedupe: ['rxjs'],

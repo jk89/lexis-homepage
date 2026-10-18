@@ -1,10 +1,12 @@
-import { Component, RxElement } from '@yaw-rx/core';
+import { Component } from '@yaw-rx/core';
 import { escape } from '@yaw-rx/common/escape';
 import { TocSection } from '../directives/toc-section.directive.js';
 import { TocAnchor } from '../directives/toc-anchor.directive.js';
 import { TocMenuCollapse } from '../directives/toc-menu-collapse.directive.js';
 import { MotionReveal } from '../directives/motion-reveal.directive.js';
 import { TocMenuItemsService } from '../services/toc-menu-items.service.js';
+import { DocPage } from '../components/doc-page.component.js';
+import styles from './install-page.css';
 import '../components/toc-menu.component.js';
 import '../components/code-block.component.js';
 import '../components/site-footer.component.js';
@@ -47,13 +49,13 @@ const PY_USE = `from cassandra.cluster import Cluster
 
 session = Cluster(['127.0.0.1']).connect('lexis')
 
-# Every document in collection c42, in path order.
+# All of user u42's orders, in key order.
 rows = session.execute(
-    "SELECT docid, body FROM docs WHERE coll = %s AND colid = %s",
-    ('collection', 'c42'),
+    "SELECT order_id, item FROM user_orders WHERE user_id = %s",
+    ('u42',),
 )
 for row in rows:
-    print(row.docid, row.body)`;
+    print(row.order_id, row.item)`;
 
 const RS_TOML = `[dependencies]
 scylla = { git = "https://github.com/jk89/lexis-rust-driver" }`;
@@ -66,18 +68,18 @@ let session = SessionBuilder::new()
     .build()
     .await?;
 
-// Every collection under "collection", in path order.
+// Every order of every user after u1, in key order.
 let rows = session
-    .query_unpaged("SELECT colid, docid FROM docs WHERE coll = ?", ("collection",))
+    .query_unpaged("SELECT user_id, order_id FROM user_orders WHERE user_id > ?", ("u1",))
     .await?
     .into_rows_result()?;
 for row in rows.rows::<(String, String)>()? {
-    let (colid, docid) = row?;
-    println!("{colid}/{docid}");
+    let (user_id, order_id) = row?;
+    println!("{user_id}/{order_id}");
 }`;
 
 const NODETOOL = `nodetool status
-nodetool repair -st <hex token> -et <hex token> lexis docs`;
+nodetool repair -st <hex token> -et <hex token> lexis user_orders`;
 
 const BUILD = `git clone https://github.com/jk89/lexisdb
 cd lexisdb
@@ -253,65 +255,6 @@ DBUILD_TOOL=docker ./tools/toolchain/dbuild ninja build/dev/scylla`;
         </div>
         <site-footer></site-footer>
     `,
-    styles: `
-        :host { display: block; min-height: 100vh; color: var(--text); }
-        :host > .layout { display: flex; }
-        .layout > .content { flex: 1 1 0; min-width: 0; padding: 6.5rem 2.5rem 5rem; max-width: 1020px; }
-        .content > .intro { margin-bottom: 2.5rem; }
-        .intro > .eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.2em;
-                   text-transform: uppercase; color: var(--sky); }
-        .intro > h1 { color: var(--white); font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 700;
-             letter-spacing: -0.03em; margin: 0.6rem 0 1rem; line-height: 1.05; }
-        .content > .cat { padding: 3rem 0 0.5rem; border-top: var(--border-width) solid rgba(255,255,255,0.08); }
-        .cat > h2 { color: var(--white); font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
-        .cat > .ex { padding: 1.75rem 0 0.75rem; margin-left: 0.25rem; }
-        .ex > h3 { color: var(--white); font-size: 1.2rem; font-weight: 500; margin: 0 0 0.6rem; }
-        .intro > .lede { color: var(--secondary); line-height: 1.75; max-width: 70ch; margin: 0; font-size: 1.08rem; font-weight: 300; }
-        .note { color: var(--secondary); line-height: 1.7; max-width: 70ch; margin: 0 0 1.1rem; font-weight: 300; }
-        .note > a, .lede > a { color: var(--accent); }
-        .inline { font-family: var(--font-mono); background: rgba(255,255,255,0.07); padding: 0.08rem 0.4rem;
-                  border-radius: 4px; color: var(--accent); font-size: 0.95em; }
-        .ex > code-block { margin-bottom: 1rem; }
-        .pill { flex: none; font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;
-                color: #2c0b22; background: var(--rose); padding: 0.2rem 0.6rem; border-radius: 999px; white-space: nowrap; }
-        .ex > .table { border-radius: var(--radius-lg); overflow: hidden; border: var(--border-width) solid rgba(255,255,255,0.08); }
-        .table > .row { display: grid; grid-template-columns: minmax(12rem, 1fr) minmax(0, 2fr) auto; gap: 1rem;
-                      align-items: center; padding: 0.8rem 1.1rem; border-bottom: var(--border-width) solid rgba(255,255,255,0.05);
-                      background: rgba(255,255,255,0.02); font-size: 0.92rem; color: var(--muted); }
-        .table > .row:last-child { border-bottom: none; }
-        .row > span > b { color: var(--white); font-weight: 500; margin-right: 0.35rem; }
-        .table > .row > code { font-family: var(--font-mono); color: var(--accent); font-size: 0.85rem;
-                           overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .table > .head { background: rgba(255,255,255,0.05); font-size: 0.7rem; letter-spacing: 0.14em;
-                       text-transform: uppercase; color: var(--dim); }
-        .ex > .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 1rem; }
-        .cards > .card { padding: 1.35rem; border-radius: 14px; background: rgba(255,255,255,0.03);
-                border: var(--border-width) solid rgba(255,255,255,0.07); transition: border-color 0.3s, transform 0.3s; }
-        .cards > .card:hover { border-color: rgba(212,176,230,0.45); transform: translateY(-3px); }
-        .card > h4 { margin: 0 0 0.45rem; color: var(--white); font-weight: 500; font-size: 1.05rem; }
-        .card > p { margin: 0; color: var(--secondary); font-size: 0.93rem; line-height: 1.6; font-weight: 300; }
-        .ex > .links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 0.75rem; }
-        .links > a { display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem 1.2rem; border-radius: var(--radius-lg);
-                   text-decoration: none; background: rgba(255,255,255,0.03);
-                   border: var(--border-width) solid rgba(255,255,255,0.08); transition: border-color 0.25s, background 0.25s; }
-        .links > a:hover { border-color: var(--accent); background: rgba(212,176,230,0.06); }
-        .links > a > b { color: var(--white); font-weight: 500; }
-        .links > a > b::after { content: ' ↗'; color: var(--accent); }
-        .links > a > span { color: var(--muted); font-size: 0.88rem; }
-        .links > .split { display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem 1.2rem;
-                          border-radius: var(--radius-lg); background: rgba(255,255,255,0.03);
-                          border: var(--border-width) solid rgba(255,255,255,0.08); }
-        .split > a { text-decoration: none; align-self: flex-start; }
-        .split > a > b { color: var(--white); font-weight: 500; }
-        .split > a > b::after { content: ' ↗'; color: var(--accent); }
-        .split > a:hover > b { color: var(--accent); }
-        .split > span { color: var(--muted); font-size: 0.88rem; }
-        .split > span > a { color: var(--accent); }
-        @media (max-width: 768px) {
-            .layout > .content { padding: 5.5rem 1.1rem 4rem; }
-            .table > .row { grid-template-columns: 1fr; gap: 0.3rem; }
-            .table > .head { display: none; }
-        }
-    `,
+    styles,
 })
-export class InstallPage extends RxElement {}
+export class InstallPage extends DocPage {}

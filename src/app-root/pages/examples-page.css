@@ -1,0 +1,32 @@
+.content > .intro { margin-bottom: 3rem; }
+.intro > .lede { color: var(--secondary); line-height: 1.75; max-width: 70ch; margin: 0 0 1rem; font-size: 1.08rem; font-weight: 300; }
+.intro > .err { margin: 0 0 1rem; padding: 0.8rem 1rem; max-width: 70ch; white-space: pre-wrap;
+                font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.55; color: var(--subtle);
+                background: rgba(10,2,12,0.45); border-left: 2px solid var(--rose); border-radius: var(--radius-sm); }
+.inline { overflow-wrap: anywhere; word-break: break-word;
+          font-family: var(--font-mono); background: rgba(255,255,255,0.07); padding: 0.08rem 0.4rem;
+          border-radius: 4px; color: var(--accent); font-size: 0.95em; }
+.ex > cql-session, .ex > code-block { margin-bottom: 1rem; }
+.ex > .footnote { margin-left: 1.25rem; }
+.ex > .paths { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.25rem;
+         font-family: var(--font-mono); font-size: 0.9rem; }
+.paths > div { display: grid; grid-template-columns: 3.6rem minmax(14rem, auto) 1fr; gap: 0.9rem;
+             align-items: center; padding: 0.55rem 0.9rem; border-radius: var(--radius);
+             background: rgba(255,255,255,0.03); border: var(--border-width) solid rgba(255,255,255,0.06); }
+.paths > div > code { color: var(--text); }
+.paths > div > em { color: var(--dim); font-style: normal; font-family: var(--font-sans); font-size: 0.85rem; }
+.paths > div > .ok, .paths > div > .no { font-size: 0.66rem; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.06em; text-align: center;
+                         border-radius: 999px; padding: 0.1rem 0; color: #2c0b22; font-family: var(--font-sans); }
+.paths > div > .ok { background: var(--green); }
+.paths > div > .no { background: var(--red); }
+.ex > .decoded { font-family: var(--font-mono); font-size: 1rem; padding: 1rem 1.25rem; border-radius: var(--radius-lg);
+           background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.12);
+           overflow-x: auto; white-space: nowrap; letter-spacing: 0.04em; }
+.ex .c0 { color: var(--sky); }
+.ex .c1 { color: var(--accent); }
+.ex .c2 { color: var(--gold); }
+.decoded > .t { color: var(--dim); }
+@media (max-width: 768px) {
+    .paths > div { grid-template-columns: 3.4rem 1fr; }
+    .paths > div > em { grid-column: 2; }
+}

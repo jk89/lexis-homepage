@@ -3,6 +3,7 @@ import { Component, Inject, RxElement, state } from '@yaw-rx/core';
 import { Router } from '@yaw-rx/core/router';
 import { TocMenuToggle } from '../directives/toc-menu-toggle.directive.js';
 import './lexis-logo.component.js';
+import styles from './nav-bar.component.css';
 
 @Component({
     selector: 'nav-bar',
@@ -21,59 +22,7 @@ import './lexis-logo.component.js';
             </div>
         </nav>
     `,
-    styles: `
-        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 300;
-              display: flex; justify-content: space-between; align-items: center;
-              padding: 0.8rem 2rem; background: rgba(31, 10, 36, 0.72);
-              backdrop-filter: blur(14px) saturate(140%);
-              -webkit-backdrop-filter: blur(14px) saturate(140%);
-              border-bottom: var(--border-width) solid rgba(255, 255, 255, 0.06); }
-        .logo { display: flex; align-items: center; gap: 0.6rem;
-                font-weight: 700; font-size: 1.3rem; color: var(--white);
-                text-decoration: none; letter-spacing: -0.5px;
-                margin-right: 2rem; position: relative; cursor: default;
-                -webkit-tap-highlight-color: transparent; }
-        .mark { width: 1.6rem; height: auto; display: block; }
-        .logo.has-menu { cursor: pointer; }
-        .logo-text { position: relative; }
-        .logo.has-funnel > .logo-text::after { content: ''; position: absolute;
-                   bottom: -7px; left: 0; width: 100%; height: 8px;
-                   background:
-                       linear-gradient(var(--text), var(--text)) center 0    / 70% 1px no-repeat,
-                       linear-gradient(var(--text), var(--text)) center 50%  / 50% 1px no-repeat,
-                       linear-gradient(var(--text), var(--text)) center 100% / 30% 1px no-repeat;
-                   opacity: 0; transition: opacity 0.8s ease, background 0.3s ease; }
-        .logo.has-funnel.funnel-visible > .logo-text::after { opacity: 0.7; }
-        .logo.menu-open > .logo-text::after {
-                   opacity: 1;
-                   background:
-                       linear-gradient(var(--accent), var(--accent)) center 0    / 70% 1px no-repeat,
-                       linear-gradient(var(--accent), var(--accent)) center 50%  / 50% 1px no-repeat,
-                       linear-gradient(var(--accent), var(--accent)) center 100% / 30% 1px no-repeat; }
-        .links { display: flex; gap: 2rem; overflow-x: auto; scrollbar-width: none; align-items: center; }
-        .links::-webkit-scrollbar { display: none; }
-        .links a { color: var(--muted); text-decoration: none; font-size: 0.92rem;
-                   letter-spacing: 0.03em; cursor: pointer; transition: color 0.2s;
-                   white-space: nowrap; position: relative;
-                   -webkit-tap-highlight-color: transparent; }
-        .links a:hover { color: var(--white); }
-        .links a.active { color: var(--white); }
-        .links a.active::after { content: ''; position: absolute;
-                   left: 0; right: 0; bottom: -6px; height: 2px; border-radius: 2px;
-                   background: linear-gradient(90deg, var(--sky), var(--accent)); }
-        .links a.gh { padding: 0.35rem 0.8rem; border-radius: 999px;
-                      border: var(--border-width) solid rgba(255,255,255,0.14); }
-        .links a.gh:hover { border-color: var(--accent); }
-        @media (max-width: 768px) {
-            nav { padding: 0.7rem 1rem; }
-            .logo { margin-right: 1rem; }
-            .links { gap: 1rem; }
-        }
-        @media (max-width: 480px) {
-            .logo { font-size: 1.1rem; margin-right: 0.75rem; gap: 0.45rem; }
-            .links a { font-size: 0.8rem; letter-spacing: 0; }
-        }
-    `
+    styles,
 })
 export class NavBar extends RxElement {
     @state route = '/';
