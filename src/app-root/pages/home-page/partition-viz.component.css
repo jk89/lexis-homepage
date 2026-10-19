@@ -66,6 +66,9 @@
 
 .verdict { margin-top: 1.25rem; display: flex; align-items: center; gap: 0.7rem;
            font-size: 0.98rem; color: var(--secondary); min-height: 1.6rem; }
+.verdict > .texts { display: grid; }
+.texts > span { grid-area: 1 / 1; align-self: center; visibility: hidden; }
+.texts > span.on { visibility: visible; }
 .verdict .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green);
                 box-shadow: 0 0 12px var(--green); flex: none; transition: background 0.3s, box-shadow 0.3s; }
 .verdict.bad .dot { background: var(--steel); box-shadow: 0 0 12px var(--steel); }

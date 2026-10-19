@@ -64,6 +64,22 @@ const hitTablets = (hits: readonly boolean[]): Set<number> => {
 
 const NODE_VIEWS = Array.from({ length: NODES }, (_, n) => ({ id: n, num: String(n + 1) }));
 
+const MODES: readonly Mode[] = ['murmur', 'lexis'];
+
+const verdictFor = (mode: Mode, queryIndex: number): string => {
+    const hits = hitsFor(queryIndex);
+    const count = hits.filter(Boolean).length;
+    if (mode === 'murmur') {
+        const nodes = new Set<number>();
+        hits.forEach((h, i) => { if (h) nodes.add(Math.floor(slotFor('murmur', i) / SLOTS_PER_NODE)); });
+        return `Hashed by the whole key: ${String(count)} matches spread over ` +
+            `${String(nodes.size)} of ${String(NODES)} nodes.`;
+    }
+    const n = hitTablets(hits).size;
+    return `Ordered by key: ${String(count)} matches in one contiguous range, ` +
+        `${String(n)} adjacent tablet${n === 1 ? '' : 's'}, read in key order.`;
+};
+
 @Component({
     selector: 'partition-viz',
     directives: [RxFor, Flip],
@@ -90,7 +106,7 @@ const NODE_VIEWS = Array.from({ length: NODES }, (_, n) => ({ id: n, num: String
             </div>
         </div>
         <div class="verdict" [class.bad]="isMode('murmur')">
-            <span class="dot"></span><span>{{verdict}}</span>
+            <span class="dot"></span><span class="texts" rx-for="v of verdicts by id"><span [class.on]="v.on">{{v.text}}</span></span>
         </div>
     `,
     styles,
@@ -128,20 +144,14 @@ export class PartitionViz extends RxElement {
         }));
     }
 
-    get verdict$(): Observable<string> {
-        return combineLatest([this.mode$, this.queryIndex$]).pipe(map(([mode, qi]) => {
-            const hits = hitsFor(qi);
-            const count = hits.filter(Boolean).length;
-            if (mode === 'murmur') {
-                const nodes = new Set<number>();
-                hits.forEach((h, i) => { if (h) nodes.add(Math.floor(slotFor('murmur', i) / SLOTS_PER_NODE)); });
-                return `Hashed by the whole key: ${String(count)} matches spread over ` +
-                    `${String(nodes.size)} of ${String(NODES)} nodes.`;
-            }
-            const n = hitTablets(hits).size;
-            return `Ordered by key: ${String(count)} matches in one contiguous range, ` +
-                `${String(n)} adjacent tablet${n === 1 ? '' : 's'}, read in key order.`;
-        }));
+    /** Every verdict, stacked in one grid cell so the card keeps the height of the longest. */
+    get verdicts$(): Observable<readonly { id: string; text: string; on: boolean }[]> {
+        return combineLatest([this.mode$, this.queryIndex$]).pipe(map(([mode, qi]) =>
+            MODES.flatMap((m) => QUERIES.map((_, i) => ({
+                id: `${m}-${String(i)}`,
+                text: verdictFor(m, i),
+                on: m === mode && i === qi,
+            })))));
     }
 
     override onInit(): void {
